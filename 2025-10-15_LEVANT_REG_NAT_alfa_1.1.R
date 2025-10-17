@@ -628,39 +628,77 @@ print(cover_by_burn)
 
 # 4. VISUALIZATION - Distribution by Natural Forest Regeneration Classes
 # Boxplots for each vegetation cover type by Natural Forest Regeneration Classes
-p1 <- ggplot(clean_data, aes(x = tratamento_queima, y = lenhoso, fill = tratamento_queima)) +
+p1 <- ggplot(clean_data, 
+             aes(x = factor(tratamento_queima, 
+                            levels = c("amarelo", "laranja", "verde", "queimado")), 
+                 y = lenhoso, 
+                 fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
   scale_fill_manual(
-    values = c(
-      "pred. gramíneas" = "yellow", 
-      "pred. gramíneas e arbustos" = "orange", 
-      "pred. plantas florestais" = "green",
-      "área recém queimada" = "gray"
-    )) +
+      values = c(
+        "amarelo" = "yellow", 
+        "laranja" = "orange", 
+        "verde" = "green",
+        "queimado" = "gray"
+      ),
+      breaks = c("amarelo", "laranja", "verde", "queimado"),
+      labels = c(
+        "amarelo" = "área pred. gramíneas",
+        "laranja" = "área pred. gramíneas e arbustos", 
+        "verde" = "área pred. plantas florestais",
+        "queimado" = "área recém queimada"
+      ),
+      name = "Natural forest regeneration classes"
+    ) +
   labs(title = "Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Woody Cover (%)") +
-  theme_minimal()
+  theme_minimal() + 
+  theme(axis.text.x = element_blank())
 
-p2 <- ggplot(clean_data, aes(x = tratamento_queima, y = nao_lenhoso, fill = tratamento_queima)) +
+p2 <- ggplot(clean_data, aes(x = factor(tratamento_queima, 
+                                        levels = c("amarelo", "laranja", "verde", "queimado")), 
+                             y = lenhoso, 
+                             fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
   scale_fill_manual(
     values = c(
-      "pred. gramíneas" = "yellow", 
-      "pred. gramíneas e arbustos" = "orange", 
-      "pred. plantas florestais" = "green",
-      "área recém queimada" = "gray"
-    )) +
+      "amarelo" = "yellow", 
+      "laranja" = "orange", 
+      "verde" = "green",
+      "queimado" = "gray"
+    ),
+    breaks = c("amarelo", "laranja", "verde", "queimado"),
+    labels = c(
+      "amarelo" = "área pred. gramíneas",
+      "laranja" = "área pred. gramíneas e arbustos", 
+      "verde" = "área pred. plantas florestais",
+      "queimado" = "área recém queimada"
+    ),
+    name = "Natural forest regeneration classes"
+  ) +
   labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Non-Woody Cover (%)") +
   theme_minimal()
 
-p3 <- ggplot(clean_data, aes(x = tratamento_queima, y = solo_nu, fill = tratamento_queima)) +
+p3 <- ggplot(clean_data, aes(x = factor(tratamento_queima, 
+                                        levels = c("amarelo", "laranja", "verde", "queimado")), 
+                             y = lenhoso, 
+                             fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
   scale_fill_manual(
     values = c(
-      "pred. gramíneas" = "yellow", 
-      "pred. gramíneas e arbustos" = "orange", 
-      "pred. plantas florestais" = "green",
-      "área recém queimada" = "gray"
-    )) +
+      "amarelo" = "yellow", 
+      "laranja" = "orange", 
+      "verde" = "green",
+      "queimado" = "gray"
+    ),
+    breaks = c("amarelo", "laranja", "verde", "queimado"),
+    labels = c(
+      "amarelo" = "área pred. gramíneas",
+      "laranja" = "área pred. gramíneas e arbustos", 
+      "verde" = "área pred. plantas florestais",
+      "queimado" = "área recém queimada"
+    ),
+    name = "Natural forest regeneration classes"
+  ) +
   labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Non-Woody Cover (%)") +
   theme_minimal()
 
@@ -749,21 +787,29 @@ for(burn in burn_levels) {
 }
 
 # 7. SCATTERPLOTS FOR KEY RELATIONSHIPS
-# Let's examine relationships with the most promising variables based on data availability
 potential_predictors <- c("ageYears_2024", "frequency_2024", "classification_2023")
 
 for(predictor in potential_predictors) {
   if(predictor %in% names(clean_data)) {
-    p <- ggplot(clean_data, aes_string(x = predictor, y = "lenhoso", color = "tratamento_queima")) +
+    p <- ggplot(clean_data, aes(x = .data[[predictor]], y = lenhoso, color = tratamento_queima)) +
       geom_point(alpha = 0.6) +
       geom_smooth(method = "lm", se = FALSE) +
-      scale_fill_manual(
+      scale_color_manual(
         values = c(
-          "pred. gramíneas" = "yellow", 
-          "pred. gramíneas e arbustos" = "orange", 
-          "pred. plantas florestais" = "green",
-          "área recém queimada" = "gray"
-        )) +
+          "amarelo" = "yellow", 
+          "laranja" = "orange", 
+          "verde" = "green",
+          "queimado" = "gray"
+        ),
+        breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+        labels = c(
+          "amarelo" = "área pred. gramíneas", 
+          "laranja" = "área pred. gramíneas e arbustos",
+          "verde" = "área pred. plantas florestais",
+          "queimado" = "área recém queimada"
+        ),
+        name = "Natural forest regeneration classes"
+      ) +
       labs(title = paste("Woody Cover vs", predictor),
            x = predictor, y = "Woody Cover (%)") +
       theme_minimal()
@@ -834,13 +880,22 @@ plot_files <- c()
 # Boxplots
 p1 <- ggplot(clean_data, aes(x = tratamento_queima, y = lenhoso, fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
-  scale_fill_manual(
+  scale_color_manual(
     values = c(
-      "pred. gramíneas" = "yellow", 
-      "pred. gramíneas e arbustos" = "orange", 
-      "pred. plantas florestais" = "green",
-      "área recém queimada" = "gray"
-    )) +
+      "amarelo" = "yellow", 
+      "laranja" = "orange", 
+      "verde" = "green",
+      "queimado" = "gray"
+    ),
+    breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+    labels = c(
+      "amarelo" = "área pred. gramíneas", 
+      "laranja" = "área pred. gramíneas e arbustos",
+      "verde" = "área pred. plantas florestais",
+      "queimado" = "área recém queimada"
+    ),
+    name = "Natural forest regeneration classes"
+  ) +
   labs(title = "Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Woody Cover (%)") +
   theme_minimal()
 
@@ -848,13 +903,22 @@ plot_files[1] <- save_plot(p1, "01_woody_cover_boxplot")
 
 p2 <- ggplot(clean_data, aes(x = tratamento_queima, y = nao_lenhoso, fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
-  scale_fill_manual(
+  scale_color_manual(
     values = c(
-      "pred. gramíneas" = "yellow", 
-      "pred. gramíneas e arbustos" = "orange", 
-      "pred. plantas florestais" = "green",
-      "área recém queimada" = "gray"
-    )) +
+      "amarelo" = "yellow", 
+      "laranja" = "orange", 
+      "verde" = "green",
+      "queimado" = "gray"
+    ),
+    breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+    labels = c(
+      "amarelo" = "área pred. gramíneas", 
+      "laranja" = "área pred. gramíneas e arbustos",
+      "verde" = "área pred. plantas florestais",
+      "queimado" = "área recém queimada"
+    ),
+    name = "Natural forest regeneration classes"
+  ) +
   labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Non-Woody Cover (%)") +
   theme_minimal()
 
@@ -862,13 +926,22 @@ plot_files[2] <- save_plot(p2, "02_non_woody_cover_boxplot")
 
 p3 <- ggplot(clean_data, aes(x = tratamento_queima, y = solo_nu, fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
-  scale_fill_manual(
+  scale_color_manual(
     values = c(
-      "pred. gramíneas" = "yellow", 
-      "pred. gramíneas e arbustos" = "orange", 
-      "pred. plantas florestais" = "green",
-      "área recém queimada" = "gray"
-    )) +
+      "amarelo" = "yellow", 
+      "laranja" = "orange", 
+      "verde" = "green",
+      "queimado" = "gray"
+    ),
+    breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+    labels = c(
+      "amarelo" = "área pred. gramíneas", 
+      "laranja" = "área pred. gramíneas e arbustos",
+      "verde" = "área pred. plantas florestais",
+      "queimado" = "área recém queimada"
+    ),
+    name = "Natural forest regeneration classes"
+  ) +
   labs(title = "Bare Soil by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Bare Soil (%)") +
   theme_minimal()
 
@@ -881,13 +954,22 @@ for(i in seq_along(predictors)) {
     p <- ggplot(clean_data, aes_string(x = predictors[i], y = "lenhoso", color = "tratamento_queima")) +
       geom_point(alpha = 0.6) +
       geom_smooth(method = "lm", se = FALSE) +
-      scale_fill_manual(
+      scale_color_manual(
         values = c(
-          "pred. gramíneas" = "yellow", 
-          "pred. gramíneas e arbustos" = "orange", 
-          "pred. plantas florestais" = "green",
-          "área recém queimada" = "gray"
-        )) +
+          "amarelo" = "yellow", 
+          "laranja" = "orange", 
+          "verde" = "green",
+          "queimado" = "gray"
+        ),
+        breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+        labels = c(
+          "amarelo" = "área pred. gramíneas", 
+          "laranja" = "área pred. gramíneas e arbustos",
+          "verde" = "área pred. plantas florestais",
+          "queimado" = "área recém queimada"
+        ),
+        name = "Natural forest regeneration classes"
+      ) +
       labs(title = paste("Woody Cover vs", predictors[i]),
            x = predictors[i], y = "Woody Cover (%)") +
       theme_minimal()

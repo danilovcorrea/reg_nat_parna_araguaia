@@ -98,7 +98,7 @@ csvfiles <-
   stringr::str_subset(., "reg_filtered.csv", negate = TRUE) %>%
   stringr::str_subset(., "reg_stat_joined_raster_classes", negate = TRUE)
 
-  reg <-
+reg <-
   data.table::rbindlist(
     lapply(csvfiles, data.table::fread, colClasses = "character"),
     idcol = TRUE,
@@ -344,7 +344,7 @@ create_kml_ua_labels <- function(dt, output_file = "transectos.kml") {
       }
       description <- paste0(description, "</table>]]>")
       
-      # Get UA value or use default
+      # Get UA value or use default - FIXED: using "ua" not "UA"
       if ("ua" %in% names(dt)) {
         ua_value <- dt[i, ua]
         start_label <- paste0(ua_value, "_ini")
@@ -398,6 +398,7 @@ create_kml_ua_labels <- function(dt, output_file = "transectos.kml") {
   
   # Write file
   writeLines(kml_content, output_file)
+  cat("KML file created:", output_file, "\n")
   return(invisible(output_file))
 }
 
@@ -434,153 +435,6 @@ library(data.table)
 library(ggplot2)
 library(corrplot)
 library(psych)
-
-# # 1. BASIC DATA OVERVIEW WITH MISSING VALUE CHECK
-# cat("=== BASIC DATA OVERVIEW ===\n")
-# str(reg_stat_joined_raster_classes)
-# 
-# # Check missing values in key variables
-# cat("\n=== MISSING VALUES IN KEY VARIABLES ===\n")
-# missing_summary <- reg_stat_joined_raster_classes[, .(
-#   lenhoso_na = sum(is.na(lenhoso)),
-#   nao_lenhoso_na = sum(is.na(nao_lenhoso)),
-#   solo_nu_na = sum(is.na(solo_nu)),
-#   queimado_na = sum(is.na(tratamento_queima))
-# )]
-# print(missing_summary)
-# 
-# # Remove rows with missing vegetation cover data
-# clean_data <- reg_stat_joined_raster_classes[!is.na(lenhoso) & !is.na(nao_lenhoso) & !is.na(solo_nu)]
-# cat("\nRows after removing NA in vegetation cover:", nrow(clean_data), "\n")
-# 
-# # 2. Natural Forest Regeneration Classes DISTRIBUTION
-# cat("\n=== Natural Forest Regeneration Classes DISTRIBUTION ===\n")
-# burn_counts <- clean_data[, .N, by = tratamento_queima]
-# print(burn_counts)
-# 
-# # 3. SUMMARY STATISTICS BY Natural Forest Regeneration Classes
-# cat("\n=== VEGETATION COVER BY Natural Forest Regeneration Classes ===\n")
-# cover_by_burn <- clean_data[, .(
-#   n_obs = .N,
-#   mean_lenhoso = mean(lenhoso, na.rm = TRUE),
-#   mean_nao_lenhoso = mean(nao_lenhoso, na.rm = TRUE),
-#   mean_solo_nu = mean(solo_nu, na.rm = TRUE),
-#   sd_lenhoso = sd(lenhoso, na.rm = TRUE),
-#   sd_nao_lenhoso = sd(nao_lenhoso, na.rm = TRUE),
-#   sd_solo_nu = sd(solo_nu, na.rm = TRUE),
-#   min_lenhoso = min(lenhoso, na.rm = TRUE),
-#   max_lenhoso = max(lenhoso, na.rm = TRUE)
-# ), by = tratamento_queima]
-# 
-# print(cover_by_burn)
-# 
-# # 4. VISUALIZATION - Distribution by Natural Forest Regeneration Classes
-# # Boxplots for each vegetation cover type by Natural Forest Regeneration Classes
-# p1 <- ggplot(clean_data, aes(x = tratamento_queima, y = lenhoso, fill = tratamento_queima)) +
-#   geom_boxplot(alpha = 0.7) +
-#   scale_fill_manual(values = c("amarelo" = "yellow", "laranja" = "orange", "verde" = "green")) +
-#   labs(title = "Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Woody Cover (%)") +
-#   theme_minimal()
-# 
-# p2 <- ggplot(clean_data, aes(x = tratamento_queima, y = nao_lenhoso, fill = tratamento_queima)) +
-#   geom_boxplot(alpha = 0.7) +
-#   scale_fill_manual(values = c("amarelo" = "yellow", "laranja" = "orange", "verde" = "green")) +
-#   labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Non-Woody Cover (%)") +
-#   theme_minimal()
-# 
-# p3 <- ggplot(clean_data, aes(x = tratamento_queima, y = solo_nu, fill = tratamento_queima)) +
-#   geom_boxplot(alpha = 0.7) +
-#   scale_fill_manual(values = c("amarelo" = "yellow", "laranja" = "orange", "verde" = "green")) +
-#   labs(title = "Bare Soil by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Bare Soil (%)") +
-#   theme_minimal()
-# 
-# # Display plots
-# print(p1)
-# print(p2)
-# print(p3)
-# 
-# # 5. CORRELATION ANALYSIS
-# 
-# # 6. EXPLORATORY ANALYSIS BY Natural Forest Regeneration Classes
-# cat("\n=== ANALYSIS BY Natural Forest Regeneration Classes ===\n")
-# burn_levels <- unique(clean_data$tratamento_queima)
-# 
-# for(burn in burn_levels) {
-#   cat("\n--- Natural Forest Regeneration Classes:", burn, "---\n")
-#   burn_data <- clean_data[tratamento_queima == burn]
-#   
-#   if(nrow(burn_data) > 3) {
-#     # Basic statistics for this Natural Forest Regeneration Classes
-#     burn_summary <- burn_data[, .(
-#       n = .N,
-#       mean_wood = mean(lenhoso),
-#       mean_herb = mean(nao_lenhoso),
-#       mean_soil = mean(solo_nu)
-#     )]
-#     print(burn_summary)
-#     
-#     # Check if we have enough data for correlations
-#     if(nrow(burn_data) > 5) {
-#       burn_numeric <- burn_data[, .SD, .SDcols = sapply(burn_data, is.numeric)]
-#       burn_numeric_clean <- burn_numeric[, ..cols_to_keep]
-#       burn_complete <- burn_numeric_clean[complete.cases(burn_numeric_clean)]
-#       
-#       if(nrow(burn_complete) > 3) {
-#         # Simple correlation with top 3 variables
-#         tryCatch({
-#           burn_cor <- cor(burn_complete$lenhoso, 
-#                           burn_complete[, !c("lenhoso", "nao_lenhoso", "solo_nu"), with = FALSE], 
-#                           use = "complete.obs")
-#           top_vars <- names(sort(abs(burn_cor[1, ]), decreasing = TRUE)[1:3])
-#           cat("Top correlates with woody cover:", paste(top_vars, collapse = ", "), "\n")
-#         }, error = function(e) cat("Not enough data for correlation in this group\n"))
-#       }
-#     }
-#   }
-# }
-# 
-# # 7. SCATTERPLOTS FOR KEY RELATIONSHIPS
-# # Let's examine relationships with the most promising variables based on data availability
-# potential_predictors <- c("ageYears_2024", "frequency_2024", "classification_2023")
-# 
-# for(predictor in potential_predictors) {
-#   if(predictor %in% names(clean_data)) {
-#     p <- ggplot(clean_data, aes_string(x = predictor, y = "lenhoso", color = "tratamento_queima")) +
-#       scale_color_manual(values = c("amarelo" = "yellow", "laranja" = "orange", "verde" = "green")) +
-#       geom_point(alpha = 0.6) +
-#       geom_smooth(method = "lm", se = FALSE) +
-#       labs(title = paste("Woody Cover vs", predictor),
-#            x = predictor, y = "Woody Cover (%)") +
-#       theme_minimal()
-#     print(p)
-#   }
-# }
-# 
-# # 8. COMPOSITION ANALYSIS
-# # Check if vegetation cover sums to approximately 100%
-# clean_data[, total_cover := lenhoso + nao_lenhoso + solo_nu]
-# cat("\n=== COVER COMPOSITION CHECK ===\n")
-# summary(clean_data$total_cover)
-# 
-# # 9. SIMPLE LINEAR MODELS
-# cat("\n=== SIMPLE REGRESSION MODELS ===\n")
-# 
-# # Model for woody cover
-# if("ageYears_2024" %in% names(clean_data)) {
-#   model_wood <- lm(lenhoso ~ tratamento_queima + ageYears_2024, data = clean_data)
-#   cat("Model for Woody Cover:\n")
-#   print(summary(model_wood))
-# }
-# 
-# # 10. KEY INSIGHTS SUMMARY
-# cat("\n=== KEY INSIGHTS ===\n")
-# cat("1. Sample size by Natural Forest Regeneration Classes:\n")
-# print(burn_counts)
-# cat("\n2. Average cover patterns:\n")
-# print(cover_by_burn[, .(Treatment = tratamento_queima, 
-#                         Woody = round(mean_lenhoso, 1),
-#                         Herbaceous = round(mean_nao_lenhoso, 1),
-#                         Bare_Soil = round(mean_solo_nu, 1))])
 
 # FIXED VERSION - MOVE COLS_TO_KEEP TO GLOBAL SCOPE
 library(data.table)
@@ -635,28 +489,28 @@ p1 <- ggplot(clean_data,
                  fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
   scale_fill_manual(
-      values = c(
-        "amarelo" = "yellow", 
-        "laranja" = "orange", 
-        "verde" = "green",
-        "queimado" = "gray"
-      ),
-      breaks = c("amarelo", "laranja", "verde", "queimado"),
-      labels = c(
-        "amarelo" = "área pred. gramíneas",
-        "laranja" = "área pred. gramíneas e arbustos", 
-        "verde" = "área pred. plantas florestais",
-        "queimado" = "área recém queimada"
-      ),
-      name = "Natural forest regeneration classes"
-    ) +
+    values = c(
+      "amarelo" = "yellow", 
+      "laranja" = "orange", 
+      "verde" = "green",
+      "queimado" = "gray"
+    ),
+    breaks = c("amarelo", "laranja", "verde", "queimado"),
+    labels = c(
+      "amarelo" = "área pred. gramíneas",
+      "laranja" = "área pred. gramíneas e arbustos", 
+      "verde" = "área pred. plantas florestais",
+      "queimado" = "área recém queimada"
+    ),
+    name = "Natural forest regeneration classes"
+  ) +
   labs(title = "Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Woody Cover (%)") +
   theme_minimal() + 
   theme(axis.text.x = element_blank())
 
 p2 <- ggplot(clean_data, aes(x = factor(tratamento_queima, 
                                         levels = c("amarelo", "laranja", "verde", "queimado")), 
-                             y = lenhoso, 
+                             y = nao_lenhoso, 
                              fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
   scale_fill_manual(
@@ -676,11 +530,12 @@ p2 <- ggplot(clean_data, aes(x = factor(tratamento_queima,
     name = "Natural forest regeneration classes"
   ) +
   labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Non-Woody Cover (%)") +
-  theme_minimal()
+  theme_minimal() + 
+  theme(axis.text.x = element_blank())
 
 p3 <- ggplot(clean_data, aes(x = factor(tratamento_queima, 
                                         levels = c("amarelo", "laranja", "verde", "queimado")), 
-                             y = lenhoso, 
+                             y = solo_nu,  # Changed from lenhoso to solo_nu
                              fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
   scale_fill_manual(
@@ -699,8 +554,11 @@ p3 <- ggplot(clean_data, aes(x = factor(tratamento_queima,
     ),
     name = "Natural forest regeneration classes"
   ) +
-  labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Non-Woody Cover (%)") +
-  theme_minimal()
+  labs(title = "Bare Soil Cover by Natural Forest Regeneration Classes", 
+       x = "Natural Forest Regeneration Classes", 
+       y = "Bare Soil Cover (%)") +
+  theme_minimal() + 
+  theme(axis.text.x = element_blank())
 
 # Display plots
 print(p1)
@@ -857,101 +715,141 @@ if (exists("reg_stat_joined_raster_classes"))
 
 ### Batch Export All Analysis Plots
 
-# Create directory for plots
+# Create directory for plots (overwrite if exists)
 if(!dir.exists("analysis_plots")) {
   dir.create("analysis_plots")
+} else {
+  cat("📁 Using existing 'analysis_plots' directory\n")
 }
 
-# Function to save plot to directory
+# Function to save plot to directory with overwrite
 save_plot <- function(plot, name) {
   filename <- file.path("analysis_plots", paste0(name, ".png"))
-  ggsave(filename, 
-         plot = plot, 
-         width = 10, 
-         height = 8, 
-         dpi = 300, 
-         bg = "white")
-  return(filename)
+  
+  # Force overwrite by deleting existing file first
+  if(file.exists(filename)) {
+    file.remove(filename)
+    cat("🗑️  Overwriting:", filename, "\n")
+  }
+  
+  # Save plot with error handling
+  result <- tryCatch({
+    ggsave(filename, 
+           plot = plot, 
+           width = 10, 
+           height = 8, 
+           dpi = 300, 
+           bg = "white")
+    cat("✅ Saved:", filename, "\n")
+    return(filename)
+  }, error = function(e) {
+    cat("❌ Failed to save", filename, ":", e$message, "\n")
+    return(NA)
+  })
+  
+  return(result)
 }
 
 # Save all main plots
 plot_files <- c()
+cat("\n=== EXPORTING PLOTS ===\n")
 
 # Boxplots
-p1 <- ggplot(clean_data, aes(x = tratamento_queima, y = lenhoso, fill = tratamento_queima)) +
+p1 <- ggplot(clean_data, 
+             aes(x = factor(tratamento_queima, 
+                            levels = c("amarelo", "laranja", "verde", "queimado")), 
+                 y = lenhoso, 
+                 fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
-  scale_color_manual(
+  scale_fill_manual(
     values = c(
       "amarelo" = "yellow", 
       "laranja" = "orange", 
       "verde" = "green",
       "queimado" = "gray"
     ),
-    breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+    breaks = c("amarelo", "laranja", "verde", "queimado"),
     labels = c(
-      "amarelo" = "área pred. gramíneas", 
-      "laranja" = "área pred. gramíneas e arbustos",
+      "amarelo" = "área pred. gramíneas",
+      "laranja" = "área pred. gramíneas e arbustos", 
       "verde" = "área pred. plantas florestais",
       "queimado" = "área recém queimada"
     ),
     name = "Natural forest regeneration classes"
   ) +
-  labs(title = "Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Woody Cover (%)") +
-  theme_minimal()
+  labs(title = "Woody Cover by Natural Forest Regeneration Classes", 
+       x = NULL, 
+       y = "Woody Cover (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
 
 plot_files[1] <- save_plot(p1, "01_woody_cover_boxplot")
 
-p2 <- ggplot(clean_data, aes(x = tratamento_queima, y = nao_lenhoso, fill = tratamento_queima)) +
+p2 <- ggplot(clean_data, 
+             aes(x = factor(tratamento_queima, 
+                            levels = c("amarelo", "laranja", "verde", "queimado")), 
+                 y = nao_lenhoso, 
+                 fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
-  scale_color_manual(
+  scale_fill_manual(
     values = c(
       "amarelo" = "yellow", 
       "laranja" = "orange", 
       "verde" = "green",
       "queimado" = "gray"
     ),
-    breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+    breaks = c("amarelo", "laranja", "verde", "queimado"),
     labels = c(
-      "amarelo" = "área pred. gramíneas", 
-      "laranja" = "área pred. gramíneas e arbustos",
+      "amarelo" = "área pred. gramíneas",
+      "laranja" = "área pred. gramíneas e arbustos", 
       "verde" = "área pred. plantas florestais",
       "queimado" = "área recém queimada"
     ),
     name = "Natural forest regeneration classes"
   ) +
-  labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Non-Woody Cover (%)") +
-  theme_minimal()
+  labs(title = "Non-Woody Cover by Natural Forest Regeneration Classes", 
+       x = NULL, 
+       y = "Non-Woody Cover (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
 
 plot_files[2] <- save_plot(p2, "02_non_woody_cover_boxplot")
 
-p3 <- ggplot(clean_data, aes(x = tratamento_queima, y = solo_nu, fill = tratamento_queima)) +
+p3 <- ggplot(clean_data, 
+             aes(x = factor(tratamento_queima, 
+                            levels = c("amarelo", "laranja", "verde", "queimado")), 
+                 y = solo_nu, 
+                 fill = tratamento_queima)) +
   geom_boxplot(alpha = 0.7) +
-  scale_color_manual(
+  scale_fill_manual(
     values = c(
       "amarelo" = "yellow", 
       "laranja" = "orange", 
       "verde" = "green",
       "queimado" = "gray"
     ),
-    breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+    breaks = c("amarelo", "laranja", "verde", "queimado"),
     labels = c(
-      "amarelo" = "área pred. gramíneas", 
-      "laranja" = "área pred. gramíneas e arbustos",
+      "amarelo" = "área pred. gramíneas",
+      "laranja" = "área pred. gramíneas e arbustos", 
       "verde" = "área pred. plantas florestais",
       "queimado" = "área recém queimada"
     ),
     name = "Natural forest regeneration classes"
   ) +
-  labs(title = "Bare Soil by Natural Forest Regeneration Classes", x = "Natural Forest Regeneration Classes", y = "Bare Soil (%)") +
-  theme_minimal()
+  labs(title = "Bare Soil Cover by Natural Forest Regeneration Classes", 
+       x = NULL, 
+       y = "Bare Soil Cover (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
 
 plot_files[3] <- save_plot(p3, "03_bare_soil_boxplot")
 
 # Scatterplots
-predictors <- c("ageYears_2024", "frequency_2024")
+predictors <- c("ageYears_2024", "frequency_2024", "classification_2023")
 for(i in seq_along(predictors)) {
   if(predictors[i] %in% names(clean_data)) {
-    p <- ggplot(clean_data, aes_string(x = predictors[i], y = "lenhoso", color = "tratamento_queima")) +
+    p <- ggplot(clean_data, aes(x = .data[[predictors[i]]], y = lenhoso, color = tratamento_queima)) +
       geom_point(alpha = 0.6) +
       geom_smooth(method = "lm", se = FALSE) +
       scale_color_manual(
@@ -961,7 +859,7 @@ for(i in seq_along(predictors)) {
           "verde" = "green",
           "queimado" = "gray"
         ),
-        breaks = c("amarelo", "laranja", "verde","queimado"),  # This controls legend order
+        breaks = c("amarelo", "laranja", "verde", "queimado"),
         labels = c(
           "amarelo" = "área pred. gramíneas", 
           "laranja" = "área pred. gramíneas e arbustos",
@@ -978,7 +876,22 @@ for(i in seq_along(predictors)) {
   }
 }
 
-cat("\n📁 All plots saved in 'analysis_plots' directory:\n")
-for(file in plot_files) {
-  if(!is.na(file)) cat("•", file, "\n")
+# Also save the plots that were created earlier in the analysis
+plot_files[7] <- save_plot(p1, "05_woody_cover_final")
+plot_files[8] <- save_plot(p2, "06_non_woody_cover_final") 
+plot_files[9] <- save_plot(p3, "07_bare_soil_final")
+
+# Summary
+cat("\n=== EXPORT SUMMARY ===\n")
+successful_exports <- sum(!is.na(plot_files))
+total_exports <- length(plot_files)
+cat("✅ Successfully exported:", successful_exports, "/", total_exports, "plots\n")
+
+if(successful_exports > 0) {
+  cat("\n📁 Plots saved in 'analysis_plots' directory:\n")
+  for(file in plot_files) {
+    if(!is.na(file)) cat("•", file, "\n")
+  }
+} else {
+  cat("❌ No plots were exported. Check for errors above.\n")
 }
